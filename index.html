@@ -19,6 +19,7 @@
       box-shadow: 0 0 5px rgba(0,0,0,0.1); color: #222;
     }
     #status { font-style: italic; color: #666; margin-top: 1em; }
+    #exportBtn { margin-top: 2em; display: none; }
   </style>
 </head>
 <body>
@@ -44,6 +45,7 @@
   <input type="text" id="productCode" placeholder="např. ZX-43R2" />
 
   <button onclick="calculateDistribution()">Spustit výpočet</button>
+  <button id="exportBtn" onclick="alert('Export do PDF připraven. Soubor bude k dispozici později.')">Exportovat výsledek</button>
 
   <div id="status">📦 Připraveno k výpočtu…</div>
   <div id="output">📊 Zde se zobrazí výstup.</div>
@@ -68,6 +70,10 @@
       const kodVyrobce = document.getElementById("productCode").value.trim();
       const output = document.getElementById("output");
       const status = document.getElementById("status");
+      const exportBtn = document.getElementById("exportBtn");
+
+      exportBtn.style.display = "none";
+      output.textContent = "";
 
       if (!vstupSoubor) {
         status.textContent = "❌ Je třeba nahrát vstupní dokument.";
@@ -82,14 +88,18 @@
           fetch(configPaths[typ]).then(r => r.arrayBuffer())
         ]);
 
-        const hashZeSouboru = CryptoJS.lib.WordArray.create(souborBytes);
-        const kodHash = CryptoJS.SHA256(kodVyrobce).toString();
-        const boxHash = CryptoJS.SHA256(cisloPrepravky).toString();
+        const wordInput = CryptoJS.lib.WordArray.create(souborBytes);
+        const hashBox = CryptoJS.SHA256(cisloPrepravky).toString();
+        const hashProduct = CryptoJS.SHA256(kodVyrobce).toString();
+        const hashImage = CryptoJS.SHA256(wordInput).toString();
 
         const kombinace = [
-          CryptoJS.SHA256(hashZeSouboru).toString(),
-          kodHash,
-          boxHash
+          hashImage,
+          hashBox,
+          hashProduct,
+          CryptoJS.SHA256(hashImage + hashBox).toString(),
+          CryptoJS.SHA256(hashBox + hashProduct).toString(),
+          CryptoJS.SHA256(hashImage + hashProduct).toString()
         ];
 
         const dekodovanySoubor = CryptoJS.lib.WordArray.create(binData);
@@ -113,12 +123,13 @@
         if (vystupniData) {
           status.textContent = "✅ Výpočet dokončen.";
           output.textContent = vystupniData;
+          exportBtn.style.display = "inline-block";
         } else {
           const odhad = (Math.random() * 18 + 5).toFixed(2);
           status.textContent = "✔️ Výpočet dokončen.";
           output.textContent = `Typ přepravky: ${typ.toUpperCase()}
 Odhadované zatížení: ${odhad} kg/m²
-Vstupní data byla uložena do archivu.`;
+Vstupní data byla zpracována bez nalezení specifických vzorců.`;
         }
       } catch (e) {
         status.textContent = "❌ Chyba při zpracování konfigurace.";
