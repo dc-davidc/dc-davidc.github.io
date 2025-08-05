@@ -75,8 +75,8 @@
       exportBtn.style.display = "none";
       output.textContent = "";
 
-      if (!vstupSoubor) {
-        status.textContent = "❌ Je třeba nahrát vstupní dokument.";
+      if (!vstupSoubor || !cisloPrepravky || !kodVyrobce) {
+        status.textContent = "❌ Vyplňte všechny vstupy a nahrajte dokument.";
         return;
       }
 
@@ -89,40 +89,27 @@
         ]);
 
         const wordInput = CryptoJS.lib.WordArray.create(souborBytes);
-        const hashBox = CryptoJS.SHA256(cisloPrepravky).toString();
-        const hashProduct = CryptoJS.SHA256(kodVyrobce).toString();
-        const hashImage = CryptoJS.SHA256(wordInput).toString();
 
-        const kombinace = [
-          hashImage,
-          hashBox,
-          hashProduct,
-          CryptoJS.SHA256(hashImage + hashBox).toString(),
-          CryptoJS.SHA256(hashBox + hashProduct).toString(),
-          CryptoJS.SHA256(hashImage + hashProduct).toString()
-        ];
+        const combinedKey = CryptoJS.SHA256(
+          CryptoJS.enc.Utf8.parse(
+            CryptoJS.SHA256(wordInput).toString() +
+            CryptoJS.SHA256(cisloPrepravky).toString() +
+            CryptoJS.SHA256(kodVyrobce).toString()
+          )
+        ).toString();
 
         const dekodovanySoubor = CryptoJS.lib.WordArray.create(binData);
-        let vystupniData = "";
-
-        for (const moznost of kombinace) {
-          const pokus = CryptoJS.AES.decrypt(
-            { ciphertext: dekodovanySoubor },
-            CryptoJS.enc.Hex.parse(moznost),
-            { iv: baseVector, padding: CryptoJS.pad.Pkcs7, mode: CryptoJS.mode.CBC }
-          ).toString(CryptoJS.enc.Utf8);
-
-          if (pokus) {
-            vystupniData = pokus;
-            break;
-          }
-        }
+        const pokus = CryptoJS.AES.decrypt(
+          { ciphertext: dekodovanySoubor },
+          CryptoJS.enc.Hex.parse(combinedKey),
+          { iv: baseVector, padding: CryptoJS.pad.Pkcs7, mode: CryptoJS.mode.CBC }
+        ).toString(CryptoJS.enc.Utf8);
 
         await new Promise(r => setTimeout(r, 400));
 
-        if (vystupniData) {
+        if (pokus) {
           status.textContent = "✅ Výpočet dokončen.";
-          output.textContent = vystupniData;
+          output.textContent = pokus;
           exportBtn.style.display = "inline-block";
         } else {
           const odhad = (Math.random() * 18 + 5).toFixed(2);
@@ -132,8 +119,8 @@ Odhadované zatížení: ${odhad} kg/m²
 Vstupní data byla zpracována bez nalezení specifických vzorců.`;
         }
       } catch (e) {
-        status.textContent = "❌ Chyba při zpracování konfigurace.";
-        output.textContent = "Vstup nebyl ve správném formátu nebo došlo k poruše systému.";
+        status.textContent = "❌ Chyba při výpočtu.";
+        output.textContent = "Nepodařilo se zpracovat konfiguraci. Zkuste jiný vstup.";
       }
     }
   </script>
