@@ -3,38 +3,32 @@
 <html>
 <head>
   <meta charset="UTF-8">
-  <title>Protected Note</title>
+  <title>Protected Note – Image Key</title>
   <style>
     body { font-family: sans-serif; text-align: center; padding: 2em; }
     #output { margin-top: 2em; white-space: pre-wrap; text-align: left; max-width: 700px; margin: 2em auto; }
-    input[type="password"] { padding: 0.5em; font-size: 1em; width: 300px; margin: 1em auto; display: block; }
-    button { padding: 0.5em 1em; font-size: 1em; }
+    input[type="file"] { margin: 1em auto; display: block; }
   </style>
 </head>
 <body>
   <h1>Protected Note</h1>
-  <p>Zadej heslo pro zobrazení zprávy:</p>
-  <input type="password" id="password" placeholder="Zadej heslo" />
-  <button onclick="loadAndDecrypt()">Odemknout</button>
-  <div id="output">Zpráva bude načtena po zadání hesla…</div>
+  <p>Vyber obrázek, který slouží jako klíč k odemknutí zprávy:</p>
+  <input type="file" id="imageInput" accept="image/*" />
+  <div id="output">Po nahrání obrázku se zobrazí zpráva…</div>
 
   <script src="https://cdn.jsdelivr.net/npm/crypto-js@4.1.1/crypto-js.min.js"></script>
   <script>
     const encFile = "assets/ca26b1c607dc.bin";
     const iv = CryptoJS.enc.Hex.parse("00000000000000000000000000000000");
 
-    async function loadAndDecrypt() {
-      const password = document.getElementById("password").value;
-      if (!password) {
-        document.getElementById("output").textContent = "❌ Zadej heslo.";
-        return;
-      }
-
+    async function decryptWithImageKey(imageBytes) {
       try {
         const response = await fetch(encFile);
         const buffer = await response.arrayBuffer();
         const wordArray = CryptoJS.lib.WordArray.create(buffer);
-        const key = CryptoJS.SHA256(password).toString();
+
+        const imageWordArray = CryptoJS.lib.WordArray.create(imageBytes);
+        const key = CryptoJS.SHA256(imageWordArray).toString();
 
         const decrypted = CryptoJS.AES.decrypt(
           { ciphertext: wordArray },
@@ -43,11 +37,22 @@
         );
 
         const text = decrypted.toString(CryptoJS.enc.Utf8);
-        document.getElementById("output").textContent = text || "❌ Nesprávné heslo nebo poškozený obsah.";
+        document.getElementById("output").textContent = text || "❌ Nesprávný obrázek nebo poškozený obsah.";
       } catch (e) {
         document.getElementById("output").textContent = "❌ Chyba při načítání nebo dešifrování.";
       }
     }
+
+    document.getElementById("imageInput").addEventListener("change", function(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function(event) {
+        const arrayBuffer = event.target.result;
+        decryptWithImageKey(arrayBuffer);
+      };
+      reader.readAsArrayBuffer(file);
+    });
   </script>
 </body>
 </html>
