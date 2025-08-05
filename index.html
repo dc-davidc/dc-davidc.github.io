@@ -3,18 +3,20 @@
 <html>
 <head>
   <meta charset="UTF-8">
-  <title>Protected Note – Image Key</title>
+  <title>Protected Note – Obrázek jako klíč (mobil safe)</title>
   <style>
     body { font-family: sans-serif; text-align: center; padding: 2em; }
     #output { margin-top: 2em; white-space: pre-wrap; text-align: left; max-width: 700px; margin: 2em auto; }
     input[type="file"] { margin: 1em auto; display: block; }
+    #status { font-style: italic; margin-top: 1em; color: #555; }
   </style>
 </head>
 <body>
   <h1>Protected Note</h1>
-  <p>Vyber obrázek, který slouží jako klíč k odemknutí zprávy:</p>
+  <p>Vyber obrázek jako klíč k odemknutí zprávy:</p>
   <input type="file" id="imageInput" accept="image/*" />
-  <div id="output">Po nahrání obrázku se zobrazí zpráva…</div>
+  <div id="status">⏳ Čekám na výběr obrázku…</div>
+  <div id="output"></div>
 
   <script src="https://cdn.jsdelivr.net/npm/crypto-js@4.1.1/crypto-js.min.js"></script>
   <script>
@@ -23,6 +25,7 @@
 
     async function decryptWithImageKey(imageBytes) {
       try {
+        document.getElementById("status").textContent = "🔐 Dešifruji...";
         const response = await fetch(encFile);
         const buffer = await response.arrayBuffer();
         const wordArray = CryptoJS.lib.WordArray.create(buffer);
@@ -37,22 +40,40 @@
         );
 
         const text = decrypted.toString(CryptoJS.enc.Utf8);
-        document.getElementById("output").textContent = text || "❌ Nesprávný obrázek nebo poškozený obsah.";
+        if (text) {
+          document.getElementById("output").textContent = text;
+          document.getElementById("status").textContent = "✅ Úspěšně odemčeno";
+        } else {
+          document.getElementById("output").textContent = "❌ Nesprávný obrázek nebo špatný klíč.";
+          document.getElementById("status").textContent = "⚠️ Dešifrování selhalo.";
+        }
       } catch (e) {
         document.getElementById("output").textContent = "❌ Chyba při načítání nebo dešifrování.";
+        document.getElementById("status").textContent = "⚠️ Výjimka: " + e.message;
       }
     }
 
     document.getElementById("imageInput").addEventListener("change", function(e) {
       const file = e.target.files[0];
       if (!file) return;
+      document.getElementById("status").textContent = "📥 Načítám obrázek...";
       const reader = new FileReader();
       reader.onload = function(event) {
-        const arrayBuffer = event.target.result;
-        decryptWithImageKey(arrayBuffer);
+        try {
+          const arrayBuffer = event.target.result;
+          decryptWithImageKey(arrayBuffer);
+        } catch (err) {
+          document.getElementById("output").textContent = "❌ Chyba při čtení souboru.";
+          document.getElementById("status").textContent = "⚠️ Soubor nelze zpracovat.";
+        }
+      };
+      reader.onerror = function() {
+        document.getElementById("output").textContent = "❌ Chyba při načítání obrázku.";
+        document.getElementById("status").textContent = "⚠️ FileReader selhal.";
       };
       reader.readAsArrayBuffer(file);
     });
   </script>
 </body>
 </html>
+s
