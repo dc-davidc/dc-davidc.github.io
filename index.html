@@ -1,79 +1,120 @@
 
 <!DOCTYPE html>
-<html>
+<html lang="cs">
 <head>
   <meta charset="UTF-8">
-  <title>Protected Note – Obrázek jako klíč (mobil safe)</title>
+  <title>Vizuální výběr a test kompatibility</title>
+  <meta name="robots" content="noindex, nofollow">
   <style>
-    body { font-family: sans-serif; text-align: center; padding: 2em; }
-    #output { margin-top: 2em; white-space: pre-wrap; text-align: left; max-width: 700px; margin: 2em auto; }
-    input[type="file"] { margin: 1em auto; display: block; }
-    #status { font-style: italic; margin-top: 1em; color: #555; }
+    body { font-family: sans-serif; text-align: center; padding: 2em; background-color: #f7f7f7; }
+    h1 { color: #444; }
+    select, input[type="password"], input[type="file"], button {
+      font-size: 1em; margin: 1em auto; display: block;
+    }
+    #output {
+      margin-top: 2em; white-space: pre-wrap; text-align: left;
+      max-width: 700px; margin-left: auto; margin-right: auto;
+      background: #fff; padding: 1em; border-radius: 8px;
+      box-shadow: 0 0 5px rgba(0,0,0,0.1);
+    }
+    #status { font-style: italic; color: #666; margin-top: 1em; }
   </style>
 </head>
 <body>
-  <h1>Protected Note</h1>
-  <p>Vyber obrázek jako klíč k odemknutí zprávy:</p>
-  <input type="file" id="imageInput" accept="image/*" />
-  <div id="status">⏳ Čekám na výběr obrázku…</div>
-  <div id="output"></div>
+  <h1>Výběr barvy a vstupních dat</h1>
+  <p>Vyber barvu konfigurace a nahraj doplňující soubor:</p>
+
+  <label for="colorSelect">Barva schématu:</label>
+  <select id="colorSelect">
+    <option value="red">Červená</option>
+    <option value="pink">Růžová</option>
+    <option value="green">Zelená</option>
+    <option value="brown">Hnědá</option>
+    <option value="blue">Modrá</option>
+    <option value="yellow">Žlutá</option>
+  </select>
+
+  <input type="file" id="fileInput" accept="image/*" />
+  <input type="password" id="passInput" placeholder="Volitelný přístupový kód…" />
+  <button onclick="runTest()">Spustit kontrolu</button>
+
+  <div id="status">Připraveno k testování…</div>
+  <div id="output">Výsledky se objeví zde.</div>
 
   <script src="https://cdn.jsdelivr.net/npm/crypto-js@4.1.1/crypto-js.min.js"></script>
   <script>
-    const encFile = "assets/ca26b1c607dc.bin";
+    const files = {
+      red: "assets/9b4349f80836.bin",
+      pink: "assets/65b6ea2bfc47.bin",
+      green: "assets/3c1b4232a660.bin",
+      brown: "assets/337aa825342f.bin",
+      blue: "assets/7a0a82a99453.bin",
+      yellow: "assets/f41620f0fc2e.bin"
+    };
+
     const iv = CryptoJS.enc.Hex.parse("00000000000000000000000000000000");
 
-    async function decryptWithImageKey(imageBytes) {
+    async function runTest() {
+      const color = document.getElementById("colorSelect").value;
+      const file = document.getElementById("fileInput").files[0];
+      const pass = document.getElementById("passInput").value.trim();
+      const output = document.getElementById("output");
+      const status = document.getElementById("status");
+
+      if (!file) {
+        status.textContent = "❌ Prosím vyber soubor.";
+        return;
+      }
+
+      status.textContent = "⏳ Načítám data…";
+
       try {
-        document.getElementById("status").textContent = "🔐 Dešifruji...";
-        const response = await fetch(encFile);
-        const buffer = await response.arrayBuffer();
-        const wordArray = CryptoJS.lib.WordArray.create(buffer);
+        const [fileBuffer, encResponse] = await Promise.all([
+          file.arrayBuffer(),
+          fetch(files[color]).then(r => r.arrayBuffer())
+        ]);
 
-        const imageWordArray = CryptoJS.lib.WordArray.create(imageBytes);
-        const key = CryptoJS.SHA256(imageWordArray).toString();
+        const imageKey = CryptoJS.lib.WordArray.create(fileBuffer);
+        const passKey = CryptoJS.SHA256(pass).toString();
 
-        const decrypted = CryptoJS.AES.decrypt(
-          { ciphertext: wordArray },
-          CryptoJS.enc.Hex.parse(key),
-          { iv: iv, padding: CryptoJS.pad.Pkcs7, mode: CryptoJS.mode.CBC }
-        );
+        const possibleKeys = [
+          CryptoJS.SHA256(imageKey).toString(),
+          passKey
+        ];
 
-        const text = decrypted.toString(CryptoJS.enc.Utf8);
-        if (text) {
-          document.getElementById("output").textContent = text;
-          document.getElementById("status").textContent = "✅ Úspěšně odemčeno";
+        const encWordArray = CryptoJS.lib.WordArray.create(encResponse);
+        let decryptedText = "";
+
+        for (const key of possibleKeys) {
+          const decrypted = CryptoJS.AES.decrypt(
+            { ciphertext: encWordArray },
+            CryptoJS.enc.Hex.parse(key),
+            { iv: iv, padding: CryptoJS.pad.Pkcs7, mode: CryptoJS.mode.CBC }
+          ).toString(CryptoJS.enc.Utf8);
+
+          if (decrypted) {
+            decryptedText = decrypted;
+            break;
+          }
+        }
+
+        await new Promise(r => setTimeout(r, 400)); // prodleva pro realismus
+
+        if (decryptedText) {
+          status.textContent = "✅ Úspěšně analyzováno.";
+          output.textContent = decryptedText;
         } else {
-          document.getElementById("output").textContent = "❌ Nesprávný obrázek nebo špatný klíč.";
-          document.getElementById("status").textContent = "⚠️ Dešifrování selhalo.";
+          const fakeStats = Math.floor(Math.random() * 1000);
+          status.textContent = "✔️ Kompatibilita zkontrolována.";
+          output.textContent = `Soubor ${file.name} analyzován.
+Přibližná velikost v blocích: ${fakeStats}.
+Nebyly detekovány specifické vzory.`;
         }
       } catch (e) {
-        document.getElementById("output").textContent = "❌ Chyba při načítání nebo dešifrování.";
-        document.getElementById("status").textContent = "⚠️ Výjimka: " + e.message;
+        status.textContent = "❌ Chyba při zpracování.";
+        output.textContent = "Technický výpadek nebo nekompatibilní vstup.";
       }
     }
-
-    document.getElementById("imageInput").addEventListener("change", function(e) {
-      const file = e.target.files[0];
-      if (!file) return;
-      document.getElementById("status").textContent = "📥 Načítám obrázek...";
-      const reader = new FileReader();
-      reader.onload = function(event) {
-        try {
-          const arrayBuffer = event.target.result;
-          decryptWithImageKey(arrayBuffer);
-        } catch (err) {
-          document.getElementById("output").textContent = "❌ Chyba při čtení souboru.";
-          document.getElementById("status").textContent = "⚠️ Soubor nelze zpracovat.";
-        }
-      };
-      reader.onerror = function() {
-        document.getElementById("output").textContent = "❌ Chyba při načítání obrázku.";
-        document.getElementById("status").textContent = "⚠️ FileReader selhal.";
-      };
-      reader.readAsArrayBuffer(file);
-    });
   </script>
 </body>
 </html>
-s
