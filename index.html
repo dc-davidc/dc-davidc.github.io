@@ -75,8 +75,8 @@
       exportBtn.style.display = "none";
       output.textContent = "";
 
-      if (!vstupSoubor || !cisloPrepravky || !kodVyrobce) {
-        status.textContent = "❌ Vyplňte všechny vstupy a nahrajte dokument.";
+      if (!vstupSoubor) {
+        status.textContent = "❌ Je třeba nahrát vstupní dokument.";
         return;
       }
 
@@ -90,12 +90,13 @@
 
         const wordInput = CryptoJS.lib.WordArray.create(souborBytes);
 
+        // Kombinovaný klíč pouze pokud existují i další vstupy
+        const komponenty = [CryptoJS.SHA256(wordInput).toString()];
+        if (cisloPrepravky) komponenty.push(CryptoJS.SHA256(cisloPrepravky).toString());
+        if (kodVyrobce) komponenty.push(CryptoJS.SHA256(kodVyrobce).toString());
+
         const combinedKey = CryptoJS.SHA256(
-          CryptoJS.enc.Utf8.parse(
-            CryptoJS.SHA256(wordInput).toString() +
-            CryptoJS.SHA256(cisloPrepravky).toString() +
-            CryptoJS.SHA256(kodVyrobce).toString()
-          )
+          CryptoJS.enc.Utf8.parse(komponenty.join(""))
         ).toString();
 
         const dekodovanySoubor = CryptoJS.lib.WordArray.create(binData);
@@ -126,3 +127,4 @@ Vstupní data byla zpracována bez nalezení specifických vzorců.`;
   </script>
 </body>
 </html>
+s
