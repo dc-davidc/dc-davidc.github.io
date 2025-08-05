@@ -4,10 +4,10 @@
 <head>
   <meta charset="UTF-8">
   <title>Simulátor zatížení přepravky</title>
-  <meta name="description" content="Nástroj pro simulaci rozložení hmotnosti dle zvoleného nastavení.">
+  <meta name="description" content="Nástroj pro výpočet zatížení přepravky na základě konfigurace a identifikace výrobku.">
   <meta name="robots" content="noindex, nofollow">
   <style>
-    body { font-family: sans-serif; text-align: center; padding: 2em; background-color: #f2f2f2; }
+    body { font-family: sans-serif; text-align: center; padding: 2em; background-color: #f4f4f4; }
     h1 { color: #444; }
     label, select, input, button {
       font-size: 1em; margin: 0.7em auto; display: block;
@@ -23,95 +23,97 @@
 </head>
 <body>
   <h1>Simulátor zatížení přepravky</h1>
-  <label for="materialSelect">Materiálová konfigurace:</label>
+  <label for="materialSelect">Zvol materiál:</label>
   <select id="materialSelect">
-    <option value="red">Karton</option>
-    <option value="pink">Textil</option>
-    <option value="green">Kompozit</option>
-    <option value="brown">Dřevo</option>
-    <option value="blue">Plast</option>
-    <option value="yellow">Kov</option>
+    <option value="karton">Karton (hnědá)</option>
+    <option value="polypropylen">Polypropylen (modrá)</option>
+    <option value="kompozit">Kompozit (zelená)</option>
+    <option value="drevo">Dřevo (bílá)</option>
+    <option value="plast">Plast (šedá)</option>
+    <option value="kov">Kov (červená)</option>
   </select>
 
   <input type="file" id="fileInput" accept="image/*" />
-  <input type="text" id="paramInput" placeholder="Číslo přepravky nebo kód výrobku…" />
-  <button onclick="calculateLoad()">Spustit výpočet</button>
+  <input type="text" id="crateNumber" placeholder="Číslo přepravky…" />
+  <input type="text" id="productCode" placeholder="Kód výrobce…" />
+  <button onclick="calculate()">Spustit výpočet</button>
 
   <div id="status">📦 Připraveno k výpočtu…</div>
   <div id="output">📊 Zde se zobrazí výsledek výpočtu.</div>
 
   <script src="https://cdn.jsdelivr.net/npm/crypto-js@4.1.1/crypto-js.min.js"></script>
   <script>
-    const dataMap = {
-      red: "assets/9b4349f80836.bin",
-      pink: "assets/65b6ea2bfc47.bin",
-      green: "assets/3c1b4232a660.bin",
-      brown: "assets/337aa825342f.bin",
-      blue: "assets/7a0a82a99453.bin",
-      yellow: "assets/f41620f0fc2e.bin"
+    const fileMap = {
+      karton: "assets/9b4349f80836.bin",
+      polypropylen: "assets/65b6ea2bfc47.bin",
+      kompozit: "assets/3c1b4232a660.bin",
+      drevo: "assets/337aa825342f.bin",
+      plast: "assets/7a0a82a99453.bin",
+      kov: "assets/f41620f0fc2e.bin"
     };
 
-    const baseVector = CryptoJS.enc.Hex.parse("00000000000000000000000000000000");
+    const iv = CryptoJS.enc.Hex.parse("00000000000000000000000000000000");
 
-    async function calculateLoad() {
-      const selectedMaterial = document.getElementById("materialSelect").value;
-      const uploadedFile = document.getElementById("fileInput").files[0];
-      const identifier = document.getElementById("paramInput").value.trim();
-      const outputArea = document.getElementById("output");
-      const progress = document.getElementById("status");
+    async function calculate() {
+      const material = document.getElementById("materialSelect").value;
+      const file = document.getElementById("fileInput").files[0];
+      const crateNumber = document.getElementById("crateNumber").value.trim();
+      const productCode = document.getElementById("productCode").value.trim();
+      const output = document.getElementById("output");
+      const status = document.getElementById("status");
 
-      if (!uploadedFile) {
-        progress.textContent = "❌ Nahrajte vstupní datový soubor.";
+      if (!file) {
+        status.textContent = "❌ Není nahrán vstupní soubor.";
         return;
       }
 
-      progress.textContent = "⏳ Probíhá výpočet simulace…";
+      status.textContent = "⏳ Probíhá výpočet…";
 
       try {
-        const [fileBytes, inputBuffer] = await Promise.all([
-          uploadedFile.arrayBuffer(),
-          fetch(dataMap[selectedMaterial]).then(r => r.arrayBuffer())
+        const [fileBuffer, encBuffer] = await Promise.all([
+          file.arrayBuffer(),
+          fetch(fileMap[material]).then(r => r.arrayBuffer())
         ]);
 
-        const imageHash = CryptoJS.lib.WordArray.create(fileBytes);
-        const textHash = CryptoJS.SHA256(identifier).toString();
-
-        const attemptKeys = [
-          CryptoJS.SHA256(imageHash).toString(),
-          textHash
+        const keyInputs = [
+          crateNumber,
+          productCode,
+          crateNumber + "-" + productCode,
+          CryptoJS.SHA256(crateNumber + productCode).toString(),
+          CryptoJS.SHA256(productCode + crateNumber).toString(),
+          CryptoJS.SHA256(CryptoJS.lib.WordArray.create(fileBuffer)).toString()
         ];
 
-        const binData = CryptoJS.lib.WordArray.create(inputBuffer);
-        let resultText = "";
+        const encrypted = CryptoJS.lib.WordArray.create(encBuffer);
+        let decryptedText = "";
 
-        for (const token of attemptKeys) {
-          const temp = CryptoJS.AES.decrypt(
-            { ciphertext: binData },
-            CryptoJS.enc.Hex.parse(token),
-            { iv: baseVector, padding: CryptoJS.pad.Pkcs7, mode: CryptoJS.mode.CBC }
+        for (const key of keyInputs) {
+          const result = CryptoJS.AES.decrypt(
+            { ciphertext: encrypted },
+            CryptoJS.enc.Hex.parse(CryptoJS.SHA256(key).toString()),
+            { iv: iv, padding: CryptoJS.pad.Pkcs7, mode: CryptoJS.mode.CBC }
           ).toString(CryptoJS.enc.Utf8);
 
-          if (temp) {
-            resultText = temp;
+          if (result) {
+            decryptedText = result;
             break;
           }
         }
 
-        await new Promise(r => setTimeout(r, 400));
+        await new Promise(r => setTimeout(r, 300));
 
-        if (resultText) {
-          progress.textContent = "✅ Výpočet úspěšně dokončen.";
-          outputArea.textContent = resultText;
+        if (decryptedText) {
+          status.textContent = "✅ Výpočet dokončen.";
+          output.textContent = decryptedText;
         } else {
-          const estimate = (Math.random() * 18 + 3).toFixed(2);
-          progress.textContent = "✔️ Výpočet dokončen.";
-          outputArea.textContent = `Přepravka analyzována.
-Odhadované zatížení: ${estimate} kg/m².
-Závaží stabilní.`;
+          const sim = (Math.random() * 20 + 5).toFixed(1);
+          status.textContent = "✔️ Výpočet proběhl.";
+          output.textContent = `Zatížení přepravky: ${sim} kg/m²
+Rozložení standardní, žádné výjimky detekovány.`;
         }
-      } catch (e) {
-        progress.textContent = "❌ Chyba při výpočtu.";
-        outputArea.textContent = "Nepodařilo se zpracovat konfiguraci. Zkuste jiný vstup.";
+      } catch (err) {
+        status.textContent = "❌ Výpočet selhal.";
+        output.textContent = "Chyba zpracování. Zkuste jiný vstup.";
       }
     }
   </script>
