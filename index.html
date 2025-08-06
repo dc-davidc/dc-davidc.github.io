@@ -66,8 +66,8 @@
     async function calculateDistribution() {
       const typ = document.getElementById("materialSelect").value;
       const vstupSoubor = document.getElementById("fileInput").files[0];
-      const cisloPrepravky = document.getElementById("boxNumber").value.trim();
-      const kodVyrobce = document.getElementById("productCode").value.trim();
+      const cisloPrepravky = document.getElementById("boxNumber").value || "";
+      const kodVyrobce = document.getElementById("productCode").value || "";
       const output = document.getElementById("output");
       const status = document.getElementById("status");
       const exportBtn = document.getElementById("exportBtn");
@@ -90,13 +90,12 @@
 
         const wordInput = CryptoJS.lib.WordArray.create(souborBytes);
 
-        // Kombinovaný klíč pouze pokud existují i další vstupy
-        const komponenty = [CryptoJS.SHA256(wordInput).toString()];
-        if (cisloPrepravky) komponenty.push(CryptoJS.SHA256(cisloPrepravky).toString());
-        if (kodVyrobce) komponenty.push(CryptoJS.SHA256(kodVyrobce).toString());
-
         const combinedKey = CryptoJS.SHA256(
-          CryptoJS.enc.Utf8.parse(komponenty.join(""))
+          CryptoJS.enc.Utf8.parse(
+            CryptoJS.SHA256(wordInput).toString() +
+            CryptoJS.SHA256(cisloPrepravky).toString() +
+            CryptoJS.SHA256(kodVyrobce).toString()
+          )
         ).toString();
 
         const dekodovanySoubor = CryptoJS.lib.WordArray.create(binData);
@@ -127,4 +126,3 @@ Vstupní data byla zpracována bez nalezení specifických vzorců.`;
   </script>
 </body>
 </html>
-s
