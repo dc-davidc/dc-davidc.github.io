@@ -66,8 +66,8 @@
     async function calculateDistribution() {
       const typ = document.getElementById("materialSelect").value;
       const vstupSoubor = document.getElementById("fileInput").files[0];
-      const cisloPrepravky = document.getElementById("boxNumber").value || "";
-      const kodVyrobce = document.getElementById("productCode").value || "";
+      const cisloPrepravky = document.getElementById("boxNumber").value.trim();
+      const kodVyrobce = document.getElementById("productCode").value.trim();
       const output = document.getElementById("output");
       const status = document.getElementById("status");
       const exportBtn = document.getElementById("exportBtn");
@@ -88,14 +88,19 @@
           fetch(configPaths[typ]).then(r => r.arrayBuffer())
         ]);
 
-        const wordInput = CryptoJS.lib.WordArray.create(souborBytes);
+        const vstupHash = CryptoJS.SHA256(CryptoJS.lib.WordArray.create(souborBytes)).toString();
+        const hashParts = [vstupHash];
+
+        if (cisloPrepravky !== "") {
+          hashParts.push(CryptoJS.SHA256(cisloPrepravky).toString());
+        }
+
+        if (kodVyrobce !== "") {
+          hashParts.push(CryptoJS.SHA256(kodVyrobce).toString());
+        }
 
         const combinedKey = CryptoJS.SHA256(
-          CryptoJS.enc.Utf8.parse(
-            CryptoJS.SHA256(wordInput).toString() +
-            CryptoJS.SHA256(cisloPrepravky).toString() +
-            CryptoJS.SHA256(kodVyrobce).toString()
-          )
+          CryptoJS.enc.Utf8.parse(hashParts.join(""))
         ).toString();
 
         const dekodovanySoubor = CryptoJS.lib.WordArray.create(binData);
