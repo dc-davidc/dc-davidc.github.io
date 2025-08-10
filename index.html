@@ -1,133 +1,102 @@
-
 <!DOCTYPE html>
 <html lang="cs">
 <head>
   <meta charset="UTF-8">
-  <title>Simulátor zatížení přepravky</title>
-  <meta name="description" content="Nástroj pro simulaci rozložení hmotnosti dle vstupních parametrů.">
-  <meta name="robots" content="noindex, nofollow">
+  <title>Energetické výpisy – interní prohlížeč (EMS)</title>
+  <meta name="robots" content="noindex, nofollow, noarchive">
+  <meta name="referrer" content="no-referrer">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'wasm-unsafe-eval'; connect-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <style>
-    body { font-family: sans-serif; text-align: center; padding: 2em; background-color: #f3f3f3; }
-    h1 { color: #333; }
-    label, select, input, button {
-      font-size: 1em; margin: 0.7em auto; display: block;
+    :root { --mx: 1024px; }
+    * { box-sizing: border-box; }
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, 'Helvetica Neue', Arial; margin: 0; background: #f6f7f9; color:#0f172a; }
+    header { background: #0f172a; color: #fff; padding: .9rem 1rem; }
+    header h1 { margin: 0; font-size: 1.02rem; letter-spacing:.2px; }
+    .beta { font-size:.72rem; background:#e2e8f0; color:#0f172a; padding:.1rem .4rem; border-radius:4px; margin-left:.4rem; }
+    main { max-width: var(--mx); margin: 0 auto; padding: 1rem; }
+    .card { background: #fff; border-radius: 8px; box-shadow: 0 1px 3px rgba(2,8,20,.06); margin: .8rem 0; }
+    .card h2 { margin: 0; font-size: .98rem; padding: .7rem 1rem; border-bottom: 1px solid #e5e7eb; background:#f8fafc;}
+    .card .body { padding: 1rem; }
+    label { display:block; font-weight:600; margin-top:.3rem; }
+    select, input[type='text'], input[type='file'], button {
+      margin-top:.35rem; padding:.58rem .64rem; width:100%; max-width:520px; font-size:1rem;
+      border:1px solid #cbd5e1; border-radius:6px; background:#fff; color:#0f172a;
     }
-    #output {
-      margin-top: 2em; white-space: pre-wrap; text-align: left;
-      max-width: 700px; margin-left: auto; margin-right: auto;
-      background: #fff; padding: 1em; border-radius: 8px;
-      box-shadow: 0 0 5px rgba(0,0,0,0.1); color: #222;
+    select { max-width: 520px; }
+    button { background:#0f172a; color:#fff; border-color:#0f172a; cursor:pointer; width:auto; padding:.58rem .9rem; }
+    button:disabled { opacity:.6; cursor:not-allowed; }
+    .monobox { padding:1rem; border-top:1px solid #e5e7eb; max-height:none; overflow:auto; background:#fff; }
+    pre#result {
+      white-space: pre-wrap;
+      word-break: break-word;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, Liberation Mono, monospace;
+      font-size:.92rem; margin:0;
+      contain: content;
+      will-change: contents;
     }
-    #status { font-style: italic; color: #666; margin-top: 1em; }
-    #exportBtn { margin-top: 2em; display: none; }
+    footer { max-width:var(--mx); margin:2rem auto; padding:0 1rem 2rem; color:#64748b; font-size:.85rem; }
   </style>
+  <script src="libs/argon2-bundled.min.js" defer></script>
+  <script src="app.js" defer></script>
 </head>
 <body>
-  <h1>Simulátor zatížení přepravky</h1>
+<header>
+  <h1>Energetické výpisy – interní prohlížeč <span class="beta">beta</span></h1>
+</header>
+<main>
+  <section class="card">
+    <h2>Export</h2>
+    <div class="body">
+      <label for="deviceSelect">Identifikátor (EMS)</label>
+      <select id="deviceSelect">
+        <option value="">– vyberte –</option>
+        <option value="assets/prg01_siemens_pac3200_fw35_eu.bin">PRG01 – Siemens SENTRON PAC3200 (FW35‑EU)</option>
+        <option value="assets/prg01_siemens_pac4200_fw41_eu.bin">PRG01 – Siemens SENTRON PAC4200 (FW41‑EU)</option>
+        <option value="assets/brn02_siemens_pac3100_fw30_eu.bin">BRN02 – Siemens SENTRON PAC3100 (FW30‑EU)</option>
+        <option value="assets/zln09_siemens_pac2200_fw22_eu.bin">ZLN09 – Siemens SENTRON PAC2200 (FW22‑EU)</option>
+        <option value="assets/brn02_schneider_pm8000_fw33_eu.bin">BRN02 – Schneider PowerLogic PM8000 (FW33‑EU)</option>
+        <option value="assets/plz04_schneider_pm5560_fw28_eu.bin">PLZ04 – Schneider PowerLogic PM5560 (FW28‑EU)</option>
+        <option value="assets/lib06_schneider_iem3155_fw21_eu.bin">LIB06 – Schneider Acti9 iEM3155 (FW21‑EU)</option>
+        <option value="assets/olm05_janitza_umg96rm_p_fw16_eu.bin">OLM05 – Janitza UMG 96RM‑P (FW16‑EU)</option>
+        <option value="assets/olm05_janitza_umg96rm_e_fw18_eu.bin">OLM05 – Janitza UMG 96RM‑E (FW18‑EU)</option>
+        <option value="assets/cb08_janitza_umg103_cbm_fw12_eu.bin">CB08 – Janitza UMG 103‑CBM (FW12‑EU)</option>
+        <option value="assets/prg01_janitza_umg604_pro_fw25_eu.bin">PRG01 – Janitza UMG 604‑PRO (FW25‑EU)</option>
+        <option value="assets/lib06_phoenix_empro_eem_ma600_fw21_eu.bin">LIB06 – Phoenix Contact EMpro EEM‑MA600 (FW21‑EU)</option>
+        <option value="assets/plz04_carlo_gavazzi_em340_fw28_eu.bin">PLZ04 – Carlo Gavazzi EM340 (FW28‑EU)</option>
+        <option value="assets/prg01_carlo_gavazzi_em24_fw26_eu.bin">PRG01 – Carlo Gavazzi EM24 (FW26‑EU)</option>
+        <option value="assets/cb08_socomec_diris_a40_fw40_eu.bin">CB08 – Socomec DIRIS A‑40 (FW40‑EU)</option>
+        <option value="assets/zln09_socomec_diris_a20_fw32_eu.bin">ZLN09 – Socomec DIRIS A‑20 (FW32‑EU)</option>
+        <option value="assets/prg01_beckhoff_el3403_panel_a_fw48_eu.bin">PRG01 – Beckhoff EL3403 panel A (FW48‑EU)</option>
+        <option value="assets/plz04_beckhoff_el3443_panel_b_fw49_eu.bin">PLZ04 – Beckhoff EL3443 panel B (FW49‑EU)</option>
+        <option value="assets/brn02_wago_750_493_power_measure_fw19_eu.bin">BRN02 – WAGO 750‑493 Power Measurement (FW19‑EU)</option>
+        <option value="assets/lib06_eastron_sdm630_modbus_fw23_eu.bin">LIB06 – Eastron SDM630‑Modbus (FW23‑EU)</option>
+        <option value="assets/cb08_abb_eqmatic_energy_analyzer_fw14_eu.bin">CB08 – ABB EQmatic Energy Analyzer (FW14‑EU)</option>
+        <option value="assets/olm05_lovato_dmg800_fw20_eu.bin">OLM05 – Lovato DMG800 (FW20‑EU)</option>
+        <option value="assets/prg01_tridium_jace8000_station_fw12_eu.bin">PRG01 – Tridium JACE‑8000 Station (FW12‑EU)</option>
+      </select>
 
-  <label for="materialSelect">Zvolený typ přepravky:</label>
-  <select id="materialSelect">
-    <option value="red">Karton</option>
-    <option value="pink">Textil</option>
-    <option value="green">Kompozit</option>
-    <option value="brown">Dřevo</option>
-    <option value="blue">Plast</option>
-    <option value="yellow">Kov</option>
-  </select>
+      <label for="dataInput">Referenční soubor</label>
+      <input type="file" id="dataInput" />
 
-  <label for="fileInput">Přiložený dokument nebo snímek:</label>
-  <input type="file" id="fileInput" accept="image/*" />
+      <label for="refCode">Parametr</label>
+      <input type="text" id="refCode" placeholder="např. PRG01-EM-7A4C" />
 
-  <label for="boxNumber">Číslo přepravky:</label>
-  <input type="text" id="boxNumber" placeholder="např. 203845" />
+      <div style="margin-top:.8rem">
+        <button id="runBtn">Zobrazit</button>
+      </div>
+    </div>
+  </section>
 
-  <label for="productCode">Kód výrobce:</label>
-  <input type="text" id="productCode" placeholder="např. ZX-43R2" />
-
-  <button onclick="calculateDistribution()">Spustit výpočet</button>
-  <button id="exportBtn" onclick="alert('Export do PDF připraven. Soubor bude k dispozici později.')">Exportovat výsledek</button>
-
-  <div id="status">📦 Připraveno k výpočtu…</div>
-  <div id="output">📊 Zde se zobrazí výstup.</div>
-
-  <script src="https://cdn.jsdelivr.net/npm/crypto-js@4.1.1/crypto-js.min.js"></script>
-  <script>
-    const configPaths = {
-      red: "assets/9b4349f80836.bin",
-      pink: "assets/65b6ea2bfc47.bin",
-      green: "assets/3c1b4232a660.bin",
-      brown: "assets/337aa825342f.bin",
-      blue: "assets/7a0a82a99453.bin",
-      yellow: "assets/f41620f0fc2e.bin"
-    };
-
-    const baseVector = CryptoJS.enc.Hex.parse("00000000000000000000000000000000");
-
-    async function calculateDistribution() {
-      const typ = document.getElementById("materialSelect").value;
-      const vstupSoubor = document.getElementById("fileInput").files[0];
-      const cisloPrepravky = document.getElementById("boxNumber").value.trim();
-      const kodVyrobce = document.getElementById("productCode").value.trim();
-      const output = document.getElementById("output");
-      const status = document.getElementById("status");
-      const exportBtn = document.getElementById("exportBtn");
-
-      exportBtn.style.display = "none";
-      output.textContent = "";
-
-      if (!vstupSoubor) {
-        status.textContent = "❌ Je třeba nahrát vstupní dokument.";
-        return;
-      }
-
-      status.textContent = "⏳ Výpočet probíhá…";
-
-      try {
-        const [souborBytes, binData] = await Promise.all([
-          vstupSoubor.arrayBuffer(),
-          fetch(configPaths[typ]).then(r => r.arrayBuffer())
-        ]);
-
-        const vstupHash = CryptoJS.SHA256(CryptoJS.lib.WordArray.create(souborBytes)).toString();
-        const hashParts = [vstupHash];
-
-        if (cisloPrepravky !== "") {
-          hashParts.push(CryptoJS.SHA256(cisloPrepravky).toString());
-        }
-
-        if (kodVyrobce !== "") {
-          hashParts.push(CryptoJS.SHA256(kodVyrobce).toString());
-        }
-
-        const combinedKey = CryptoJS.SHA256(
-          CryptoJS.enc.Utf8.parse(hashParts.join(""))
-        ).toString();
-
-        const dekodovanySoubor = CryptoJS.lib.WordArray.create(binData);
-        const pokus = CryptoJS.AES.decrypt(
-          { ciphertext: dekodovanySoubor },
-          CryptoJS.enc.Hex.parse(combinedKey),
-          { iv: baseVector, padding: CryptoJS.pad.Pkcs7, mode: CryptoJS.mode.CBC }
-        ).toString(CryptoJS.enc.Utf8);
-
-        await new Promise(r => setTimeout(r, 400));
-
-        if (pokus) {
-          status.textContent = "✅ Výpočet dokončen.";
-          output.textContent = pokus;
-          exportBtn.style.display = "inline-block";
-        } else {
-          const odhad = (Math.random() * 18 + 5).toFixed(2);
-          status.textContent = "✔️ Výpočet dokončen.";
-          output.textContent = `Typ přepravky: ${typ.toUpperCase()}
-Odhadované zatížení: ${odhad} kg/m²
-Vstupní data byla zpracována bez nalezení specifických vzorců.`;
-        }
-      } catch (e) {
-        status.textContent = "❌ Chyba při výpočtu.";
-        output.textContent = "Nepodařilo se zpracovat konfiguraci. Zkuste jiný vstup.";
-      }
-    }
-  </script>
+  <section class="card">
+    <h2>Výstup</h2>
+    <div class="body">
+      <div class="monobox"><pre id="result">—</pre></div>
+    </div>
+  </section>
+</main>
+<footer>
+  Interní nástroj – verze beta.
+</footer>
 </body>
 </html>
