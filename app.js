@@ -1,8 +1,23 @@
 (() => {
   'use strict';
-
   const $ = (id) => document.getElementById(id);
   const enc = new TextEncoder();
+
+  // Progress overlay helpers
+  const overlay = document.getElementById('overlay');
+  const pfill = document.getElementById('pfill');
+  const plabel = document.getElementById('plabel');
+  const progress = overlay ? overlay.querySelector('.progress') : null;
+
+  function showOverlay(){ if(!overlay) return; overlay.classList.add('show'); document.body.style.overflow='hidden'; setProgress(1, 'Připravuji…'); }
+  function hideOverlay(){ if(!overlay) return; overlay.classList.remove('show'); document.body.style.overflow=''; }
+  function setProgress(pct, label){
+    if(!progress) return;
+    const v = Math.max(0, Math.min(100, Math.floor(pct)));
+    if (pfill) pfill.style.width = v + '%';
+    progress.setAttribute('aria-valuenow', String(v));
+    if (label && plabel) plabel.textContent = label;
+  }
 
   // Streaming renderer
   function renderBytesStreaming(u8, preEl){
@@ -19,7 +34,7 @@
     function pump(){
       const end = Math.min(i + CHUNK, u8.length);
       const slice = u8.subarray(i, end);
-      acc += decoder.decode(slice, { stream: true });
+      try { acc += decoder.decode(slice, { stream: true }); } catch(e) { acc += decoder.decode(slice); }
 
       if (acc.length >= FLUSH_THRESHOLD){
         textNode.appendData(acc);
@@ -30,11 +45,11 @@
       if (i < u8.length){
         requestAnimationFrame(pump);
       } else {
-        acc += decoder.decode();
+        try { acc += decoder.decode(); } catch(e) {}
         if (acc) textNode.appendData(acc);
       }
     }
-    pump();
+    requestAnimationFrame(pump);
   }
 
   function concatBytes(a, b){ const out = new Uint8Array(a.length + b.length); out.set(a, 0); out.set(b, a.length); return out; }
@@ -59,13 +74,14 @@
       hashLen: 32,
       parallelism: p,
       type: window.argon2.ArgonType.Argon2id,
-      distPath: 'libs'
+      distPath: 'libs',
+      onProgress: (x) => { setProgress(35 + Math.round((x||0)*50), 'Odvozování klíče…'); }
     });
     const raw = (h && h.hash && h.hash instanceof Uint8Array) ? h.hash : new Uint8Array(h.hash);
     return crypto.subtle.importKey('raw', raw, { name:'AES-GCM' }, false, ['decrypt']);
   }
 
-  async function decryptEMS2(fullBuf, phrase, fileBytes, warnEl){
+  async function decryptEMS2(fullBuf, phrase, fileBytes){
     const HDR = { len: 48, magic: [0x45,0x4d,0x53,0x32] }; // 'EMS2'
     const view = new DataView(fullBuf);
     if (!eqMagic(view, HDR.magic) || view.getUint8(4)!==1) throw new Error('hdr');
@@ -81,19 +97,43 @@
     const nonce= new Uint8Array(fullBuf.slice(36, 48));
     const ct   = new Uint8Array(fullBuf.slice(HDR.len));
 
-    // Gentle heads-up for huge Argon2 settings in browser
-    if (warnEl){
-      if (mKiB >= 512*1024) {
-        warnEl.textContent = "Upozornění: tento export vyžaduje vysoké parametry (≈" + (mKiB/1024).toFixed(0) + " MiB). V některých prohlížečích nemusí být dost paměti.";
-      } else {
-        warnEl.textContent = "";
-      }
-    }
-
+    setProgress(35, 'Odvozování klíče…');
     const pwd = await buildPasswordBytes(phrase, fileBytes);
     const key = await deriveKeyArgon2id(pwd, salt, mKiB, t, par);
+    setProgress(86, 'Dešifrování…');
     const pt  = await crypto.subtle.decrypt({ name:'AES-GCM', iv: nonce, tagLength: 128, additionalData: header }, key, ct);
     return new Uint8Array(pt);
+  }
+
+  async function fetchWithProgress(url){
+    setProgress(5, 'Stahuji…');
+    const resp = await fetch(url, { cache:'no-store' });
+    if (!resp.ok) throw new Error('fetch');
+    const len = Number(resp.headers.get('Content-Length')) || 0;
+    if (resp.body && resp.body.getReader){
+      const reader = resp.body.getReader();
+      const chunks = [];
+      let received = 0;
+      while(true){
+        const {value, done} = await reader.read();
+        if (done) break;
+        chunks.push(value);
+        received += value.byteLength;
+        if (len) {
+          const pct = Math.min(30, 5 + (received/len)*25);
+          setProgress(pct, 'Stahuji…');
+        }
+      }
+      let size = 0; for (const c of chunks) size += c.byteLength;
+      const out = new Uint8Array(size);
+      let off = 0;
+      for (const c of chunks){ out.set(c, off); off += c.byteLength; }
+      return out.buffer;
+    } else {
+      const buf = await resp.arrayBuffer();
+      setProgress(30, 'Stahuji…');
+      return buf;
+    }
   }
 
   async function run(){
@@ -101,19 +141,19 @@
     const fileInput = $('dataInput').files[0];
     const phrase = $('refCode').value.trim();
     const out = $('result');
-    const warn = $('warn');
 
     if (!path || !fileInput || !phrase) { out.textContent = 'Protokol nelze zobrazit.'; return; }
 
-    out.textContent = 'Zpracovávám…';
+    showOverlay();
     try{
-      const resp = await fetch(path, { cache:'no-store' });
-      if (!resp.ok) throw new Error('fetch');
-      const fullBuf = await resp.arrayBuffer();
+      const fullBuf = await fetchWithProgress(path);
       const fileBuf = await fileInput.arrayBuffer();
-      const pt = await decryptEMS2(fullBuf, phrase, new Uint8Array(fileBuf), warn);
+      setProgress(92, 'Vykreslování…');
+      const pt = await decryptEMS2(fullBuf, phrase, new Uint8Array(fileBuf));
+      hideOverlay();
       renderBytesStreaming(pt, out);
     } catch(e){
+      hideOverlay();
       out.textContent = 'Protokol nelze zobrazit.';
     }
   }
