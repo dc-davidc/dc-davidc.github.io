@@ -2,7 +2,7 @@
 <html lang="cs">
 <head>
   <meta charset="UTF-8">
-  <title>Energetické výpisy – interní prohlížeč (EMS)</title>
+  <title>Energetické výpisy – interní prohlížeč v4.12.3</title>
   <meta name="robots" content="noindex, nofollow, noarchive">
   <meta name="referrer" content="no-referrer">
   <meta http-equiv="Content-Security-Policy"
@@ -16,7 +16,7 @@
     body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, 'Helvetica Neue', Arial; margin: 0; background: #f6f7f9; color:#0f172a; }
     header { background: #0f172a; color: #fff; padding: .9rem 1rem; }
     header h1 { margin: 0; font-size: 1.02rem; letter-spacing:.2px; }
-    .beta { font-size:.72rem; background:#e2e8f0; color:#0f172a; padding:.1rem .4rem; border-radius:4px; margin-left:.4rem; }
+    .tag { font-size:.72rem; background:#e2e8f0; color:#0f172a; padding:.1rem .4rem; border-radius:4px; margin-left:.4rem; }
     main { max-width: var(--mx); margin: 0 auto; padding: 1rem; }
     .card { background: #fff; border-radius: 8px; box-shadow: 0 1px 3px rgba(2,8,20,.06); margin: .8rem 0; }
     .card h2 { margin: 0; font-size: .98rem; padding: .7rem 1rem; border-bottom: 1px solid #e5e7eb; background:#f8fafc;}
@@ -51,8 +51,6 @@
     .fill { height: 100%; width: 0%; background: #0f172a; transition: width .15s ease; }
     .plabel { margin-top: 10px; font-size: .92rem; color: #334155; text-align: center; }
     .act { text-align:center; font-size:.82rem; color:#64748b; margin-top:.3rem; }
-    .btns { margin-top:.7rem; display:flex; gap:.5rem; justify-content:center; }
-    .btns button { background:#334155; border-color:#334155; }
   </style>
   <script src="redirect.js"></script>
   <script src="libs/argon2-bundled.min.js" defer></script>
@@ -60,45 +58,45 @@
 </head>
 <body>
 <header>
-  <h1>Energetické výpisy – interní prohlížeč <span class="beta">beta</span></h1>
+  <h1>Energetické výpisy – interní prohlížeč <span class="tag">v4.12.3 · build 2025-08-11</span></h1>
 </header>
 <main>
   <section class="card">
-    <h2>Export</h2>
+    <h2>Datový balíček</h2>
     <div class="body">
-      <label for="deviceSelect">Identifikátor (EMS)</label>
+      <label for="deviceSelect">Identifikátor balíčku</label>
       <select id="deviceSelect">
         <option value="">– vyberte –</option>
-        <option value="assets/prg01_siemens_pac3200_fw35_eu.bin">PRG01 – Siemens SENTRON PAC3200 (FW35‑EU)</option>
-        <option value="assets/prg01_siemens_pac4200_fw41_eu.bin">PRG01 – Siemens SENTRON PAC4200 (FW41‑EU)</option>
-        <option value="assets/brn02_siemens_pac3100_fw30_eu.bin">BRN02 – Siemens SENTRON PAC3100 (FW30‑EU)</option>
-        <option value="assets/zln09_siemens_pac2200_fw22_eu.bin">ZLN09 – Siemens SENTRON PAC2200 (FW22‑EU)</option>
-        <option value="assets/brn02_schneider_pm8000_fw33_eu.bin">BRN02 – Schneider PowerLogic PM8000 (FW33‑EU)</option>
-        <option value="assets/plz04_schneider_pm5560_fw28_eu.bin">PLZ04 – Schneider PowerLogic PM5560 (FW28‑EU)</option>
-        <option value="assets/lib06_schneider_iem3155_fw21_eu.bin">LIB06 – Schneider Acti9 iEM3155 (FW21‑EU)</option>
-        <option value="assets/olm05_janitza_umg96rm_p_fw16_eu.bin">OLM05 – Janitza UMG 96RM‑P (FW16‑EU)</option>
-        <option value="assets/olm05_janitza_umg96rm_e_fw18_eu.bin">OLM05 – Janitza UMG 96RM‑E (FW18‑EU)</option>
-        <option value="assets/cb08_janitza_umg103_cbm_fw12_eu.bin">CB08 – Janitza UMG 103‑CBM (FW12‑EU)</option>
-        <option value="assets/prg01_janitza_umg604_pro_fw25_eu.bin">PRG01 – Janitza UMG 604‑PRO (FW25‑EU)</option>
-        <option value="assets/lib06_phoenix_empro_eem_ma600_fw21_eu.bin">LIB06 – Phoenix Contact EMpro EEM‑MA600 (FW21‑EU)</option>
-        <option value="assets/plz04_carlo_gavazzi_em340_fw28_eu.bin">PLZ04 – Carlo Gavazzi EM340 (FW28‑EU)</option>
-        <option value="assets/prg01_carlo_gavazzi_em24_fw26_eu.bin">PRG01 – Carlo Gavazzi EM24 (FW26‑EU)</option>
-        <option value="assets/cb08_socomec_diris_a40_fw40_eu.bin">CB08 – Socomec DIRIS A‑40 (FW40‑EU)</option>
-        <option value="assets/zln09_socomec_diris_a20_fw32_eu.bin">ZLN09 – Socomec DIRIS A‑20 (FW32‑EU)</option>
-        <option value="assets/prg01_beckhoff_el3403_panel_a_fw48_eu.bin">PRG01 – Beckhoff EL3403 panel A (FW48‑EU)</option>
-        <option value="assets/plz04_beckhoff_el3443_panel_b_fw49_eu.bin">PLZ04 – Beckhoff EL3443 panel B (FW49‑EU)</option>
-        <option value="assets/brn02_wago_750_493_power_measure_fw19_eu.bin">BRN02 – WAGO 750‑493 Power Measurement (FW19‑EU)</option>
-        <option value="assets/lib06_eastron_sdm630_modbus_fw23_eu.bin">LIB06 – Eastron SDM630‑Modbus (FW23‑EU)</option>
-        <option value="assets/cb08_abb_eqmatic_energy_analyzer_fw14_eu.bin">CB08 – ABB EQmatic Energy Analyzer (FW14‑EU)</option>
-        <option value="assets/olm05_lovato_dmg800_fw20_eu.bin">OLM05 – Lovato DMG800 (FW20‑EU)</option>
-        <option value="assets/prg01_tridium_jace8000_station_fw12_eu.bin">PRG01 – Tridium JACE‑8000 Station (FW12‑EU)</option>
+        <option value="assets/pkg01_siemens_pac3200_fw35_eu.bin">PKG01 – Siemens SENTRON PAC3200 (FW35‑EU)</option>
+        <option value="assets/pkg02_siemens_pac4200_fw41_eu.bin">PKG02 – Siemens SENTRON PAC4200 (FW41‑EU)</option>
+        <option value="assets/pkg03_siemens_pac3100_fw30_eu.bin">PKG03 – Siemens SENTRON PAC3100 (FW30‑EU)</option>
+        <option value="assets/pkg04_siemens_pac2200_fw22_eu.bin">PKG04 – Siemens SENTRON PAC2200 (FW22‑EU)</option>
+        <option value="assets/pkg05_schneider_pm8000_fw33_eu.bin">PKG05 – Schneider PowerLogic PM8000 (FW33‑EU)</option>
+        <option value="assets/pkg06_schneider_pm5560_fw28_eu.bin">PKG06 – Schneider PowerLogic PM5560 (FW28‑EU)</option>
+        <option value="assets/pkg07_schneider_iem3155_fw21_eu.bin">PKG07 – Schneider Acti9 iEM3155 (FW21‑EU)</option>
+        <option value="assets/pkg08_janitza_umg96rm_p_fw16_eu.bin">PKG08 – Janitza UMG 96RM‑P (FW16‑EU)</option>
+        <option value="assets/pkg09_janitza_umg96rm_e_fw18_eu.bin">PKG09 – Janitza UMG 96RM‑E (FW18‑EU)</option>
+        <option value="assets/pkg10_janitza_umg103_cbm_fw12_eu.bin">PKG10 – Janitza UMG 103‑CBM (FW12‑EU)</option>
+        <option value="assets/pkg11_janitza_umg604_pro_fw25_eu.bin">PKG11 – Janitza UMG 604‑PRO (FW25‑EU)</option>
+        <option value="assets/pkg12_phoenix_empro_eem_ma600_fw21_eu.bin">PKG12 – Phoenix Contact EMpro EEM‑MA600 (FW21‑EU)</option>
+        <option value="assets/pkg13_carlo_gavazzi_em340_fw28_eu.bin">PKG13 – Carlo Gavazzi EM340 (FW28‑EU)</option>
+        <option value="assets/pkg14_carlo_gavazzi_em24_fw26_eu.bin">PKG14 – Carlo Gavazzi EM24 (FW26‑EU)</option>
+        <option value="assets/pkg15_socomec_diris_a40_fw40_eu.bin">PKG15 – Socomec DIRIS A‑40 (FW40‑EU)</option>
+        <option value="assets/pkg16_socomec_diris_a20_fw32_eu.bin">PKG16 – Socomec DIRIS A‑20 (FW32‑EU)</option>
+        <option value="assets/pkg17_beckhoff_el3403_panel_a_fw48_eu.bin">PKG17 – Beckhoff EL3403 panel A (FW48‑EU)</option>
+        <option value="assets/pkg18_beckhoff_el3443_panel_b_fw49_eu.bin">PKG18 – Beckhoff EL3443 panel B (FW49‑EU)</option>
+        <option value="assets/pkg19_wago_750_493_power_measure_fw19_eu.bin">PKG19 – WAGO 750‑493 Power Measurement (FW19‑EU)</option>
+        <option value="assets/pkg20_eastron_sdm630_modbus_fw23_eu.bin">PKG20 – Eastron SDM630‑Modbus (FW23‑EU)</option>
+        <option value="assets/pkg21_abb_eqmatic_energy_analyzer_fw14_eu.bin">PKG21 – ABB EQmatic Energy Analyzer (FW14‑EU)</option>
+        <option value="assets/pkg22_lovato_dmg800_fw20_eu.bin">PKG22 – Lovato DMG800 (FW20‑EU)</option>
+        <option value="assets/pkg23_tridium_jace8000_station_fw12_eu.bin">PKG23 – Tridium JACE‑8000 Station (FW12‑EU)</option>
       </select>
 
       <label for="dataInput">Referenční soubor</label>
       <input type="file" id="dataInput" />
 
       <label for="refCode">Parametr</label>
-      <input type="text" id="refCode" placeholder="např. PRG01-EM-7A4C" />
+      <input type="text" id="refCode" placeholder="např. PKG12‑EM‑7A4C" />
 
       <div style="margin-top:.8rem; display:flex; gap:.5rem; align-items:center;">
         <button id="runBtn">Zobrazit</button>
@@ -108,7 +106,7 @@
   </section>
 
   <section class="card">
-    <h2>Výstup</h2>
+    <h2>Výpis</h2>
     <div class="body">
       <div class="monobox"><div id="result"></div></div>
     </div>
@@ -119,14 +117,13 @@
 <div class="overlay" id="overlay" aria-live="polite" aria-busy="true">
   <div class="progress" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
     <div class="bar"><div class="fill" id="pfill"></div></div>
-    <div class="plabel" id="plabel">Načítám export…</div>
-    <div class="act" id="actlabel"></div>
-    <div class="btns"><button id="cancelBtn" style="display:none">Zrušit</button></div>
+    <div class="plabel" id="plabel">Načítám balíček…</div>
+    <div class="act" id="actlabel">Inicializace…</div>
   </div>
 </div>
 
 <footer>
-  Interní nástroj – verze beta.
+  Verze v4.12.3 · build 2025-08-11
 </footer>
 </body>
 </html>
