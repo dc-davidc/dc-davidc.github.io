@@ -93,11 +93,14 @@
   function be32(view, off){ return (view.getUint32(off, false))>>>0; }
   function eqMagic(view, arr){ for (let i=0;i<4;i++) if (view.getUint8(i)!==arr[i]) return false; return true; }
 
+  // *** PATCHED: KDF domain separation ***
   async function buildPasswordBytes(phrase, fileBytes){
+    const domain = new TextEncoder().encode('EMS2-KDF\0'); // domain prefix
     const p = enc.encode(phrase);
     const h = await crypto.subtle.digest('SHA-256', fileBytes);
     const fhash = new Uint8Array(h);
-    return concatBytes(concatBytes(u16(p.length), p), concatBytes(u16(fhash.length), fhash));
+    // return domain || len(p)||p || len(fhash)||fhash
+    return concatBytes(domain, concatBytes(concatBytes(u16(p.length), p), concatBytes(u16(fhash.length), fhash)));
   }
 
   async function deriveKeyArgon2id(pwd, salt, mKiB, t, p){
