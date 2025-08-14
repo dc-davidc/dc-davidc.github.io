@@ -2,7 +2,7 @@
 <html lang="cs">
 <head>
   <meta charset="UTF-8">
-  <title>Energetické výpisy – interní prohlížeč v4.14.0</title>
+  <title>Energetické výpisy – interní prohlížeč v4.18.1</title>
   <meta name="robots" content="noindex, nofollow, noarchive">
   <meta name="referrer" content="no-referrer">
   <meta http-equiv="Content-Security-Policy"
@@ -15,8 +15,11 @@
     * { box-sizing: border-box; }
     body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, 'Helvetica Neue', Arial; margin: 0; background: #f6f7f9; color:#0f172a; }
     header { background: #0f172a; color: #fff; padding: .9rem 1rem; }
-    header h1 { margin: 0; font-size: 1.02rem; letter-spacing:.2px; }
-    .tag { font-size:.72rem; background:#e2e8f0; color:#0f172a; padding:.1rem .4rem; border-radius:4px; margin-left:.4rem; }
+    header h1 { margin: 0; font-size: 1.02rem; letter-spacing:.2px; display:flex; align-items:center; gap:.5rem; flex-wrap:wrap; }
+    .tag { font-size:.72rem; background:#e2e8f0; color:#0f172a; padding:.1rem .4rem; border-radius:4px; }
+    .tls-badge { font-size:.72rem; padding:.1rem .4rem; border-radius:4px; background:#f1f5f9; }
+    .tls-ok { color:#16a34a; }
+    .tls-warn { color:#dc2626; }
     main { max-width: var(--mx); margin: 0 auto; padding: 1rem; }
     .card { background: #fff; border-radius: 8px; box-shadow: 0 1px 3px rgba(2,8,20,.06); margin: .8rem 0; }
     .card h2 { margin: 0; font-size: .98rem; padding: .7rem 1rem; border-bottom: 1px solid #e5e7eb; background:#f8fafc;}
@@ -58,7 +61,11 @@
 </head>
 <body>
 <header>
-  <h1>Energetické výpisy – interní prohlížeč <span class="tag">v4.14.0 · build 2025-08-13</span></h1>
+  <h1>
+    Energetické výpisy – interní prohlížeč
+    <span class="tag">v4.18.1 · build 2025-08-14</span>
+    <span id="tlsBadge" class="tls-badge">Kontrola protokolu…</span>
+  </h1>
 </header>
 <main>
   <section class="card">
@@ -123,7 +130,7 @@
 </div>
 
 <footer>
-  Verze v4.14.0 · build 2025-08-13
+  Verze v4.18.1 · build 2025-08-14
 </footer>
 </body>
 </html>
