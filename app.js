@@ -49,7 +49,7 @@
     try { if (window.gc) window.gc(); } catch(e){}
   }
 
-  // Segmented renderer
+  // Segmented renderer (mobile Firefox-proof)
   function renderSegmented(u8, container){
     const decoder = new TextDecoder('utf-8');
     const MAX_SEG_CHARS = 200000;
@@ -94,8 +94,8 @@
   function eqMagic(view, arr){ for (let i=0;i<4;i++) if (view.getUint8(i)!==arr[i]) return false; return true; }
 
   async function buildPasswordBytes(phrase, fileBytes){
-    const domain = new TextEncoder().encode('EMS2-KDF\0');
-    const p = new TextEncoder().encode(phrase);
+    const domain = new TextEncoder().encode('EMS2-KDF\0'); // domain separation label
+    const p = enc.encode(phrase);
     const h = await crypto.subtle.digest('SHA-256', fileBytes);
     const fhash = new Uint8Array(h);
     return concatBytes(domain, concatBytes(concatBytes(u16(p.length), p), concatBytes(u16(fhash.length), fhash)));
@@ -113,7 +113,7 @@
   }
 
   async function decryptEMS2(fullBuf, phrase, fileBytes){
-    const HDR = { len: 48, magic: [0x45,0x4d,0x53,0x32] };
+    const HDR = { len: 48, magic: [0x45,0x4d,0x53,0x32] }; // 'EMS2'
     const view = new DataView(fullBuf);
     if (!eqMagic(view, HDR.magic) || view.getUint8(4)!==1) throw new Error('hdr');
     const kdfId  = view.getUint8(5);
@@ -190,7 +190,7 @@
   window.addEventListener('DOMContentLoaded', () => {
     updateTLSBadge();
     const btn = $('runBtn'); if (btn) btn.addEventListener('click', run);
-    const wipeBtn = $('wipeBtn'); if (wipeBtn) wipeBtn.addEventListener('click', secureWipe);
+    const wipeBtn = $('wipeBtn'); if (wipeBtn) wipe.addEventListener('click', secureWipe);
   });
   window.addEventListener('pagehide', secureWipe);
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') secureWipe(); });
